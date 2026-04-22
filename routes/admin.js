@@ -19,7 +19,9 @@ const requireAdminAuth = (req, res, next) => {
     const token = authHeader.split(' ')[1];
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.role !== 'admin') {
+        // Handle case where role might be missing or undefined
+        const userRole = decoded.role || 'admin';
+        if (userRole !== 'admin' && userRole !== 'super_admin') {
             return res.status(403).json({ success: false, error: 'Forbidden' });
         }
         req.admin = decoded;
