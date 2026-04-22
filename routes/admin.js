@@ -245,7 +245,7 @@ router.delete('/requests/:id', protect, async (req, res) => {
 });
 
 // ─── GET /api/admin/packages ──────────────────────────────────────────────────
-router.get('/packages', protect, async (req, res) => {
+router.get('/packages', async (req, res) => {
     try {
         const packages = await Package.find().sort({ price: 1 });
         res.json({ success: true, count: packages.length, data: packages });
