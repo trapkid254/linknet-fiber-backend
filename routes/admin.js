@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const Request = require('../models/Request');
 const Package = require('../models/Package');
 const Admin = require('../models/Admin');
+const Coverage = require('../models/Coverage');
 const { protect, authorize } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'linknet-admin-secret-2024';
@@ -294,6 +295,60 @@ router.delete('/packages/:id', protect, authorize('admin', 'super_admin'), async
     } catch (error) {
         console.error('Delete package error:', error);
         res.status(500).json({ success: false, error: 'Failed to delete package' });
+    }
+});
+
+// ─── GET /api/admin/coverage ───────────────────────────────────────────────────
+router.get('/coverage', protect, authorize('admin', 'super_admin'), async (req, res) => {
+    try {
+        const coverage = await Coverage.find().sort({ city: 1, estate: 1 });
+        res.json({ success: true, count: coverage.length, data: coverage });
+    } catch (error) {
+        console.error('Get coverage error:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch coverage areas' });
+    }
+});
+
+// ─── POST /api/admin/coverage ──────────────────────────────────────────────────
+router.post('/coverage', protect, authorize('admin', 'super_admin'), async (req, res) => {
+    try {
+        const coverage = new Coverage(req.body);
+        await coverage.save();
+        res.status(201).json({ success: true, data: coverage });
+    } catch (error) {
+        console.error('Create coverage error:', error);
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// ─── PUT /api/admin/coverage/:id ─────────────────────────────────────────────────
+router.put('/coverage/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+    try {
+        const coverage = await Coverage.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
+        });
+        if (!coverage) {
+            return res.status(404).json({ success: false, error: 'Coverage area not found' });
+        }
+        res.json({ success: true, data: coverage });
+    } catch (error) {
+        console.error('Update coverage error:', error);
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// ─── DELETE /api/admin/coverage/:id ───────────────────────────────────────────────
+router.delete('/coverage/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+    try {
+        const coverage = await Coverage.findByIdAndDelete(req.params.id);
+        if (!coverage) {
+            return res.status(404).json({ success: false, error: 'Coverage area not found' });
+        }
+        res.json({ success: true, message: 'Coverage area deleted successfully' });
+    } catch (error) {
+        console.error('Delete coverage error:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete coverage area' });
     }
 });
 
