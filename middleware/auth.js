@@ -16,19 +16,24 @@ const protect = async (req, res, next) => {
             
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'linknet-admin-secret-2024');
+            console.log('JWT decoded successfully:', { id: decoded.id, email: decoded.email, role: decoded.role });
             
             // Get admin from token
             req.admin = await Admin.findById(decoded.id).select('-password');
+            console.log('Admin found in DB:', !!req.admin);
             
             if (!req.admin) {
+                console.log('Admin not found in database for ID:', decoded.id);
                 return res.status(401).json({
                     success: false,
                     error: 'Not authorized, admin not found'
                 });
             }
             
+            console.log('Admin status:', req.admin.status);
             // Check if admin is active
             if (req.admin.status !== 'active') {
+                console.log('Admin account not active, status:', req.admin.status);
                 return res.status(401).json({
                     success: false,
                     error: 'Account is inactive or suspended'
