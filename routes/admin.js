@@ -120,7 +120,7 @@ router.get('/verify', protect, authorize('admin', 'super_admin'), (req, res) => 
 });
 
 // ─── GET /api/admin/dashboard/stats ──────────────────────────────────────────
-router.get('/dashboard/stats', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.get('/dashboard/stats', protect, async (req, res) => {
     try {
         const [
             totalRequests,
