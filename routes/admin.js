@@ -115,6 +115,11 @@ router.get('/test', (req, res) => {
     res.json({ success: true, message: 'Admin routes working', timestamp: new Date().toISOString() });
 });
 
+// Test endpoint with protect middleware only
+router.get('/test-auth', protect, (req, res) => {
+    res.json({ success: true, message: 'Protect middleware working', admin: req.admin ? req.admin.email : 'No admin' });
+});
+
 // ─── GET /api/admin/verify ────────────────────────────────────────────────────
 router.get('/verify', protect, (req, res) => {
     res.json({ success: true, admin: req.admin });
