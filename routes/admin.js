@@ -5,31 +5,12 @@ const jwt = require('jsonwebtoken');
 const Request = require('../models/Request');
 const Package = require('../models/Package');
 const Admin = require('../models/Admin');
+const { protect, authorize } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'linknet-admin-secret-2024';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'administrator@linknetfiber.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Linknet@2024';
 
-// ─── Auth middleware (local, for admin routes only) ───────────────────────────
-const requireAdminAuth = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, error: 'No token provided' });
-    }
-    const token = authHeader.split(' ')[1];
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        // Handle case where role might be missing or undefined
-        const userRole = decoded.role || 'admin';
-        if (userRole !== 'admin' && userRole !== 'super_admin') {
-            return res.status(403).json({ success: false, error: 'Forbidden' });
-        }
-        req.admin = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
-    }
-};
 
 // ─── POST /api/admin/login ────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
@@ -134,12 +115,12 @@ router.get('/test', (req, res) => {
 });
 
 // ─── GET /api/admin/verify ────────────────────────────────────────────────────
-router.get('/verify', requireAdminAuth, (req, res) => {
+router.get('/verify', protect, authorize('admin', 'super_admin'), (req, res) => {
     res.json({ success: true, admin: req.admin });
 });
 
 // ─── GET /api/admin/dashboard/stats ──────────────────────────────────────────
-router.get('/dashboard/stats', requireAdminAuth, async (req, res) => {
+router.get('/dashboard/stats', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const [
             totalRequests,
@@ -189,7 +170,7 @@ router.get('/dashboard/stats', requireAdminAuth, async (req, res) => {
 });
 
 // ─── GET /api/admin/requests ──────────────────────────────────────────────────
-router.get('/requests', requireAdminAuth, async (req, res) => {
+router.get('/requests', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const { status, page = 1, limit = 50 } = req.query;
         const query = status ? { status } : {};
@@ -217,7 +198,7 @@ router.get('/requests', requireAdminAuth, async (req, res) => {
 });
 
 // ─── PUT /api/admin/requests/:id ─────────────────────────────────────────────
-router.put('/requests/:id', requireAdminAuth, async (req, res) => {
+router.put('/requests/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const { status, notes } = req.body;
         const validStatuses = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
@@ -249,7 +230,7 @@ router.put('/requests/:id', requireAdminAuth, async (req, res) => {
 });
 
 // ─── DELETE /api/admin/requests/:id ──────────────────────────────────────────
-router.delete('/requests/:id', requireAdminAuth, async (req, res) => {
+router.delete('/requests/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const request = await Request.findByIdAndDelete(req.params.id);
         if (!request) {
@@ -263,7 +244,7 @@ router.delete('/requests/:id', requireAdminAuth, async (req, res) => {
 });
 
 // ─── GET /api/admin/packages ──────────────────────────────────────────────────
-router.get('/packages', requireAdminAuth, async (req, res) => {
+router.get('/packages', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const packages = await Package.find().sort({ price: 1 });
         res.json({ success: true, count: packages.length, data: packages });
@@ -274,7 +255,7 @@ router.get('/packages', requireAdminAuth, async (req, res) => {
 });
 
 // ─── POST /api/admin/packages ─────────────────────────────────────────────────
-router.post('/packages', requireAdminAuth, async (req, res) => {
+router.post('/packages', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const pkg = new Package(req.body);
         await pkg.save();
@@ -286,7 +267,7 @@ router.post('/packages', requireAdminAuth, async (req, res) => {
 });
 
 // ─── PUT /api/admin/packages/:id ─────────────────────────────────────────────
-router.put('/packages/:id', requireAdminAuth, async (req, res) => {
+router.put('/packages/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const pkg = await Package.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -303,7 +284,7 @@ router.put('/packages/:id', requireAdminAuth, async (req, res) => {
 });
 
 // ─── DELETE /api/admin/packages/:id ──────────────────────────────────────────
-router.delete('/packages/:id', requireAdminAuth, async (req, res) => {
+router.delete('/packages/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         const pkg = await Package.findByIdAndDelete(req.params.id);
         if (!pkg) {
