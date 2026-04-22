@@ -116,7 +116,7 @@ router.get('/test', (req, res) => {
 });
 
 // ─── GET /api/admin/verify ────────────────────────────────────────────────────
-router.get('/verify', protect, authorize('admin', 'super_admin'), (req, res) => {
+router.get('/verify', protect, (req, res) => {
     res.json({ success: true, admin: req.admin });
 });
 
@@ -171,7 +171,7 @@ router.get('/dashboard/stats', protect, async (req, res) => {
 });
 
 // ─── GET /api/admin/requests ──────────────────────────────────────────────────
-router.get('/requests', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.get('/requests', protect, async (req, res) => {
     try {
         const { status, page = 1, limit = 50 } = req.query;
         const query = status ? { status } : {};
@@ -199,7 +199,7 @@ router.get('/requests', protect, authorize('admin', 'super_admin'), async (req, 
 });
 
 // ─── PUT /api/admin/requests/:id ─────────────────────────────────────────────
-router.put('/requests/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.put('/requests/:id', protect, async (req, res) => {
     try {
         const { status, notes } = req.body;
         const validStatuses = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
@@ -231,7 +231,7 @@ router.put('/requests/:id', protect, authorize('admin', 'super_admin'), async (r
 });
 
 // ─── DELETE /api/admin/requests/:id ──────────────────────────────────────────
-router.delete('/requests/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.delete('/requests/:id', protect, async (req, res) => {
     try {
         const request = await Request.findByIdAndDelete(req.params.id);
         if (!request) {
@@ -245,7 +245,7 @@ router.delete('/requests/:id', protect, authorize('admin', 'super_admin'), async
 });
 
 // ─── GET /api/admin/packages ──────────────────────────────────────────────────
-router.get('/packages', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.get('/packages', protect, async (req, res) => {
     try {
         const packages = await Package.find().sort({ price: 1 });
         res.json({ success: true, count: packages.length, data: packages });
@@ -256,7 +256,7 @@ router.get('/packages', protect, authorize('admin', 'super_admin'), async (req, 
 });
 
 // ─── POST /api/admin/packages ─────────────────────────────────────────────────
-router.post('/packages', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.post('/packages', protect, async (req, res) => {
     try {
         const pkg = new Package(req.body);
         await pkg.save();
@@ -268,7 +268,7 @@ router.post('/packages', protect, authorize('admin', 'super_admin'), async (req,
 });
 
 // ─── PUT /api/admin/packages/:id ─────────────────────────────────────────────
-router.put('/packages/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.put('/packages/:id', protect, async (req, res) => {
     try {
         const pkg = await Package.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -285,7 +285,7 @@ router.put('/packages/:id', protect, authorize('admin', 'super_admin'), async (r
 });
 
 // ─── DELETE /api/admin/packages/:id ──────────────────────────────────────────
-router.delete('/packages/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.delete('/packages/:id', protect, async (req, res) => {
     try {
         const pkg = await Package.findByIdAndDelete(req.params.id);
         if (!pkg) {
@@ -299,7 +299,7 @@ router.delete('/packages/:id', protect, authorize('admin', 'super_admin'), async
 });
 
 // ─── GET /api/admin/coverage ───────────────────────────────────────────────────
-router.get('/coverage', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.get('/coverage', protect, async (req, res) => {
     try {
         const coverage = await Coverage.find().sort({ city: 1, estate: 1 });
         res.json({ success: true, count: coverage.length, data: coverage });
@@ -310,7 +310,7 @@ router.get('/coverage', protect, authorize('admin', 'super_admin'), async (req, 
 });
 
 // ─── POST /api/admin/coverage ──────────────────────────────────────────────────
-router.post('/coverage', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.post('/coverage', protect, async (req, res) => {
     try {
         const coverage = new Coverage(req.body);
         await coverage.save();
@@ -322,7 +322,7 @@ router.post('/coverage', protect, authorize('admin', 'super_admin'), async (req,
 });
 
 // ─── PUT /api/admin/coverage/:id ─────────────────────────────────────────────────
-router.put('/coverage/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.put('/coverage/:id', protect, async (req, res) => {
     try {
         const coverage = await Coverage.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -339,7 +339,7 @@ router.put('/coverage/:id', protect, authorize('admin', 'super_admin'), async (r
 });
 
 // ─── DELETE /api/admin/coverage/:id ───────────────────────────────────────────────
-router.delete('/coverage/:id', protect, authorize('admin', 'super_admin'), async (req, res) => {
+router.delete('/coverage/:id', protect, async (req, res) => {
     try {
         const coverage = await Coverage.findByIdAndDelete(req.params.id);
         if (!coverage) {
