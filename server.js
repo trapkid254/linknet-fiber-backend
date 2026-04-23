@@ -12,6 +12,12 @@ require('dotenv').config();
 const packageRoutes = require('./routes/packages');
 const requestRoutes = require('./routes/requests');
 const adminRoutes = require('./routes/admin');
+const customerRoutes = require('./routes/customers');
+const billingRoutes = require('./routes/billing');
+const analyticsRoutes = require('./routes/analytics');
+const mpesaRoutes = require('./routes/mpesa');
+const uploadRoutes = require('./routes/uploads');
+const exportRoutes = require('./routes/exports');
 
 // Initialize Express app
 const app = express();
@@ -93,6 +99,12 @@ app.get('/api/health', (req, res) => {
 app.use('/api/packages', packageRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/mpesa', mpesaRoutes);
+app.use('/api/uploads', uploadRoutes);
+app.use('/api/exports', exportRoutes);
 
 // ====== Error Handling ======
 

@@ -37,6 +37,18 @@ const adminSchema = new mongoose.Schema({
     lastLogin: {
         type: Date
     },
+    phone: {
+        type: String,
+        trim: true,
+        match: [
+            /^\+?[\d\s\-\(\)]+$/,
+            'Please provide a valid phone number'
+        ]
+    },
+    profileImage: {
+        type: String,
+        default: null
+    },
     loginAttempts: {
         type: Number,
         default: 0

@@ -6,6 +6,7 @@ const Request = require('../models/Request');
 const Package = require('../models/Package');
 const Admin = require('../models/Admin');
 const Coverage = require('../models/Coverage');
+const Customer = require('../models/Customer');
 const { protect, authorize } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'linknet-admin-secret-2024';
@@ -276,6 +277,254 @@ router.get('/packages/:id', async (req, res) => {
     }
 });
 
+// Get current admin profile
+router.get('/profile', protect, async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.admin.id).select('-password');
+        
+        if (!admin) {
+            return res.status(404).json({ success: false, error: 'Admin not found' });
+        }
+        
+        res.json({ 
+            success: true, 
+            data: {
+                id: admin._id,
+                name: admin.name,
+                email: admin.email,
+                role: admin.role,
+                status: admin.status,
+                permissions: admin.allPermissions,
+                profileImage: admin.profileImage,
+                phone: admin.phone,
+                createdAt: admin.createdAt,
+                lastLogin: admin.lastLogin
+            }
+        });
+    } catch (error) {
+        console.error('Get profile error:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch profile' });
+    }
+});
+
+// Update admin profile
+router.put('/profile', protect, async (req, res) => {
+    try {
+        const { name, email, phone, permissions } = req.body;
+        
+        // Find admin
+        const admin = await Admin.findById(req.admin.id);
+        if (!admin) {
+            return res.status(404).json({ success: false, error: 'Admin not found' });
+        }
+        
+        // Update fields
+        if (name) admin.name = name;
+        if (email) {
+            // Check if email is already taken by another admin
+            const existingAdmin = await Admin.findOne({ 
+                email, 
+                _id: { $ne: admin._id } 
+            });
+            if (existingAdmin) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Email is already in use' 
+                });
+            }
+            admin.email = email;
+        }
+        if (phone) admin.phone = phone;
+        if (permissions && Array.isArray(permissions)) {
+            admin.permissions = permissions;
+        }
+        
+        await admin.save();
+        
+        // Return updated profile without password
+        const updatedAdmin = await Admin.findById(admin._id).select('-password');
+        
+        res.json({ 
+            success: true, 
+            message: 'Profile updated successfully',
+            data: {
+                id: updatedAdmin._id,
+                name: updatedAdmin.name,
+                email: updatedAdmin.email,
+                role: updatedAdmin.role,
+                status: updatedAdmin.status,
+                permissions: updatedAdmin.allPermissions,
+                profileImage: updatedAdmin.profileImage,
+                phone: updatedAdmin.phone,
+                createdAt: updatedAdmin.createdAt,
+                lastLogin: updatedAdmin.lastLogin
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ success: false, error: 'Failed to update profile' });
+    }
+});
+
+// Upload profile image
+router.post('/profile/image', protect, async (req, res) => {
+    try {
+        // For now, we'll handle base64 image upload
+        // In production, you might want to use multer for file uploads
+        const { imageData } = req.body;
+        
+        if (!imageData) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'No image data provided' 
+            });
+        }
+        
+        // Validate base64 image
+        if (!imageData.startsWith('data:image/')) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid image format' 
+            });
+        }
+        
+        // Find admin
+        const admin = await Admin.findById(req.admin.id);
+        if (!admin) {
+            return res.status(404).json({ success: false, error: 'Admin not found' });
+        }
+        
+        // Update profile image
+        admin.profileImage = imageData;
+        await admin.save();
+        
+        res.json({ 
+            success: true, 
+            message: 'Profile image updated successfully',
+            data: { profileImage: imageData }
+        });
+    } catch (error) {
+        console.error('Upload image error:', error);
+        res.status(500).json({ success: false, error: 'Failed to upload image' });
+    }
+});
+
+// Change password
+router.post('/change-password', protect, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Current password and new password are required' 
+            });
+        }
+        
+        if (newPassword.length < 6) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'New password must be at least 6 characters long' 
+            });
+        }
+        
+        // Find admin
+        const admin = await Admin.findById(req.admin.id);
+        if (!admin) {
+            return res.status(404).json({ success: false, error: 'Admin not found' });
+        }
+        
+        // Verify current password
+        const isCurrentPasswordValid = await admin.comparePassword(currentPassword);
+        if (!isCurrentPasswordValid) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Current password is incorrect' 
+            });
+        }
+        
+        // Update password
+        admin.password = newPassword;
+        await admin.save();
+        
+        res.json({ 
+            success: true, 
+            message: 'Password changed successfully' 
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ success: false, error: 'Failed to change password' });
+    }
+});
+
+// Get system settings
+router.get('/settings', protect, authorize('admin', 'super_admin'), async (req, res) => {
+    try {
+        // For now, return default settings
+        // In production, you might want to store these in a database
+        const settings = {
+            siteName: 'Linknet Fiber',
+            siteDescription: 'Kenya\'s Most Reliable Fiber Network',
+            contactEmail: 'info@linknetfiber.com',
+            contactPhone: '+254 708 860 451',
+            supportEmail: 'support@linknetfiber.com',
+            whatsappNumber: '+254708860451',
+            socialMedia: {
+                facebook: 'https://facebook.com/linknetfiber',
+                twitter: 'https://twitter.com/linknetfiber',
+                instagram: 'https://instagram.com/linknetfiber',
+                linkedin: 'https://linkedin.com/company/linknetfiber'
+            },
+            businessHours: {
+                weekdays: '8:00 AM - 6:00 PM',
+                saturday: '9:00 AM - 4:00 PM',
+                sunday: 'Closed'
+            },
+            maintenance: {
+                enabled: false,
+                message: ''
+            },
+            notifications: {
+                emailNotifications: true,
+                smsNotifications: false,
+                newRequestAlert: true,
+                monthlyReports: true
+            }
+        };
+        
+        res.json({ success: true, data: settings });
+    } catch (error) {
+        console.error('Get settings error:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch settings' });
+    }
+});
+
+// Update system settings
+router.put('/settings', protect, authorize('super_admin'), async (req, res) => {
+    try {
+        const settings = req.body;
+        
+        // Validate required fields
+        if (!settings.siteName || !settings.contactEmail) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Site name and contact email are required' 
+            });
+        }
+        
+        // For now, just return success
+        // In production, you would save these to a database
+        res.json({ 
+            success: true, 
+            message: 'Settings updated successfully',
+            data: settings
+        });
+    } catch (error) {
+        console.error('Update settings error:', error);
+        res.status(500).json({ success: false, error: 'Failed to update settings' });
+    }
+});
+
 // ─── POST /api/admin/packages ─────────────────────────────────────────────────
 router.post('/packages', protect, async (req, res) => {
     try {
@@ -460,6 +709,121 @@ router.get('/public/coverage', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch coverage areas'
+        });
+    }
+});
+
+// Get all customers for admin
+router.get('/customers/all', protect, authorize('admin'), async (req, res) => {
+    try {
+        const customers = await Customer.find()
+            .select('-password')
+            .sort({ registrationDate: -1 });
+        
+        res.json({
+            success: true,
+            customers: customers.map(customer => customer.toJSON())
+        });
+        
+    } catch (error) {
+        console.error('Error fetching customers:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch customers'
+        });
+    }
+});
+
+// Get single customer for admin
+router.get('/customers/:id', protect, authorize('admin'), async (req, res) => {
+    try {
+        const customer = await Customer.findById(req.params.id).select('-password');
+        
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Customer not found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            customer: customer.toJSON()
+        });
+        
+    } catch (error) {
+        console.error('Error fetching customer:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch customer'
+        });
+    }
+});
+
+// Update customer for admin
+router.put('/customers/:id', protect, authorize('admin'), async (req, res) => {
+    try {
+        const { fullname, email, phone, accountStatus, address } = req.body;
+        
+        const customer = await Customer.findById(req.params.id);
+        
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Customer not found'
+            });
+        }
+        
+        // Update fields
+        if (fullname) customer.fullname = fullname;
+        if (email) customer.email = email.toLowerCase();
+        if (phone) customer.phone = phone;
+        if (accountStatus) customer.accountStatus = accountStatus;
+        if (address) {
+            customer.address = { ...customer.address, ...address };
+        }
+        
+        await customer.save();
+        
+        res.json({
+            success: true,
+            message: 'Customer updated successfully',
+            customer: customer.toJSON()
+        });
+        
+    } catch (error) {
+        console.error('Error updating customer:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update customer'
+        });
+    }
+});
+
+// Delete customer for admin
+router.delete('/customers/:id', protect, authorize('admin'), async (req, res) => {
+    try {
+        const customer = await Customer.findById(req.params.id);
+        
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Customer not found'
+            });
+        }
+        
+        await Customer.findByIdAndDelete(req.params.id);
+        
+        res.json({
+            success: true,
+            message: 'Customer deleted successfully'
+        });
+        
+    } catch (error) {
+        console.error('Error deleting customer:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete customer'
         });
     }
 });
