@@ -260,6 +260,22 @@ router.get('/packages', async (req, res) => {
     }
 });
 
+// Get single package by ID
+router.get('/packages/:id', async (req, res) => {
+    try {
+        const package = await Package.findById(req.params.id);
+        
+        if (!package) {
+            return res.status(404).json({ success: false, error: 'Package not found' });
+        }
+        
+        res.json({ success: true, data: package });
+    } catch (error) {
+        console.error('Get package error:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch package' });
+    }
+});
+
 // ─── POST /api/admin/packages ─────────────────────────────────────────────────
 router.post('/packages', protect, async (req, res) => {
     try {
