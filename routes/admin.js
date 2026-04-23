@@ -6,7 +6,6 @@ const Request = require('../models/Request');
 const Package = require('../models/Package');
 const Admin = require('../models/Admin');
 const Coverage = require('../models/Coverage');
-const Customer = require('../models/Customer');
 const { protect, authorize } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'linknet-admin-secret-2024';
@@ -709,121 +708,6 @@ router.get('/public/coverage', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch coverage areas'
-        });
-    }
-});
-
-// Get all customers for admin
-router.get('/customers/all', protect, authorize('admin'), async (req, res) => {
-    try {
-        const customers = await Customer.find()
-            .select('-password')
-            .sort({ registrationDate: -1 });
-        
-        res.json({
-            success: true,
-            customers: customers.map(customer => customer.toJSON())
-        });
-        
-    } catch (error) {
-        console.error('Error fetching customers:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch customers'
-        });
-    }
-});
-
-// Get single customer for admin
-router.get('/customers/:id', protect, authorize('admin'), async (req, res) => {
-    try {
-        const customer = await Customer.findById(req.params.id).select('-password');
-        
-        if (!customer) {
-            return res.status(404).json({
-                success: false,
-                error: 'Customer not found'
-            });
-        }
-        
-        res.json({
-            success: true,
-            customer: customer.toJSON()
-        });
-        
-    } catch (error) {
-        console.error('Error fetching customer:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch customer'
-        });
-    }
-});
-
-// Update customer for admin
-router.put('/customers/:id', protect, authorize('admin'), async (req, res) => {
-    try {
-        const { fullname, email, phone, accountStatus, address } = req.body;
-        
-        const customer = await Customer.findById(req.params.id);
-        
-        if (!customer) {
-            return res.status(404).json({
-                success: false,
-                error: 'Customer not found'
-            });
-        }
-        
-        // Update fields
-        if (fullname) customer.fullname = fullname;
-        if (email) customer.email = email.toLowerCase();
-        if (phone) customer.phone = phone;
-        if (accountStatus) customer.accountStatus = accountStatus;
-        if (address) {
-            customer.address = { ...customer.address, ...address };
-        }
-        
-        await customer.save();
-        
-        res.json({
-            success: true,
-            message: 'Customer updated successfully',
-            customer: customer.toJSON()
-        });
-        
-    } catch (error) {
-        console.error('Error updating customer:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to update customer'
-        });
-    }
-});
-
-// Delete customer for admin
-router.delete('/customers/:id', protect, authorize('admin'), async (req, res) => {
-    try {
-        const customer = await Customer.findById(req.params.id);
-        
-        if (!customer) {
-            return res.status(404).json({
-                success: false,
-                error: 'Customer not found'
-            });
-        }
-        
-        await Customer.findByIdAndDelete(req.params.id);
-        
-        res.json({
-            success: true,
-            message: 'Customer deleted successfully'
-        });
-        
-    } catch (error) {
-        console.error('Error deleting customer:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to delete customer'
         });
     }
 });
