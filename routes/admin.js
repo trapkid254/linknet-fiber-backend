@@ -357,4 +357,95 @@ router.delete('/coverage/:id', protect, async (req, res) => {
     }
 });
 
+// Public coverage search endpoint (no auth required)
+router.get('/public/coverage/search', async (req, res) => {
+    try {
+        const { county, estate } = req.query;
+        
+        if (!county || !estate) {
+            return res.status(400).json({
+                success: false,
+                error: 'County and estate parameters are required'
+            });
+        }
+        
+        // Search for coverage areas
+        const coverage = await Coverage.find({
+            $or: [
+                { county: { $regex: county, $options: 'i' } },
+                { city: { $regex: county, $options: 'i' } }
+            ],
+            status: 'available'
+        });
+        
+        // Check if estate matches any coverage areas
+        const isAvailable = coverage.some(area => {
+            const estateLower = estate.toLowerCase();
+            const cityMatch = area.city && area.city.toLowerCase().includes(estateLower);
+            const estateMatch = area.estate && area.estate.toLowerCase().includes(estateLower);
+            const countyMatch = area.county && area.county.toLowerCase().includes(estateLower);
+            
+            return cityMatch || estateMatch || countyMatch;
+        });
+        
+        // Get all available counties for dropdown
+        const allCoverage = await Coverage.find({ status: 'available' }).distinct('county');
+        const cities = await Coverage.find({ status: 'available' }).distinct('city');
+        
+        res.json({
+            success: true,
+            isAvailable,
+            coverage: coverage.map(area => ({
+                city: area.city,
+                estate: area.estate,
+                county: area.county,
+                status: area.status
+            })),
+            availableCounties: [...new Set([...allCoverage, ...cities])].sort()
+        });
+        
+    } catch (error) {
+        console.error('Coverage search error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to search coverage areas'
+        });
+    }
+});
+
+// Public coverage areas endpoint (no auth required)
+router.get('/public/coverage', async (req, res) => {
+    try {
+        const coverage = await Coverage.find({ status: 'available' })
+            .sort({ county: 1, city: 1, estate: 1 });
+        
+        // Group by county/city
+        const groupedCoverage = {};
+        coverage.forEach(area => {
+            const key = area.county || area.city;
+            if (!groupedCoverage[key]) {
+                groupedCoverage[key] = [];
+            }
+            if (area.estate) {
+                groupedCoverage[key].push(area.estate);
+            }
+        });
+        
+        res.json({
+            success: true,
+            coverage: Object.keys(groupedCoverage).sort().map(county => ({
+                county,
+                estates: [...new Set(groupedCoverage[county])].sort()
+            }))
+        });
+        
+    } catch (error) {
+        console.error('Get coverage error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch coverage areas'
+        });
+    }
+});
+
 module.exports = router;
