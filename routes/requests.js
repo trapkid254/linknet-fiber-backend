@@ -79,7 +79,7 @@ router.post('/', async (req, res) => {
             email: email.toLowerCase(),
             phone,
             idNumber,
-            county: county.toLowerCase(),
+            county,
             estate,
             street,
             building,

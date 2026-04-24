@@ -39,7 +39,7 @@ const requestSchema = new mongoose.Schema({
     county: {
         type: String,
         required: [true, 'County is required'],
-        enum: ['nairobi', 'mombasa', 'kisumu', 'nakuru', 'eldoret', 'kiambu', 'other']
+        trim: true
     },
     estate: {
         type: String,
