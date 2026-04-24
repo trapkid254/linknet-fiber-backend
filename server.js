@@ -12,6 +12,7 @@ require('dotenv').config();
 const packageRoutes = require('./routes/packages');
 const requestRoutes = require('./routes/requests');
 const adminRoutes = require('./routes/admin');
+const clientRoutes = require('./routes/clients');
 
 // Initialize Express app
 const app = express();
@@ -75,7 +76,8 @@ app.get('/', (req, res) => {
         endpoints: {
             packages: '/api/packages',
             requests: '/api/requests',
-            admin: '/api/admin'
+            admin: '/api/admin',
+            clients: '/api/clients'
         }
     });
 });
@@ -93,6 +95,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/packages', packageRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/clients', clientRoutes);
 
 // ====== Error Handling ======
 
