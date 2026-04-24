@@ -13,6 +13,7 @@ const packageRoutes = require('./routes/packages');
 const requestRoutes = require('./routes/requests');
 const adminRoutes = require('./routes/admin');
 const clientRoutes = require('./routes/clients');
+const paymentRoutes = require('./routes/payments');
 
 // Initialize Express app
 const app = express();
@@ -77,7 +78,8 @@ app.get('/', (req, res) => {
             packages: '/api/packages',
             requests: '/api/requests',
             admin: '/api/admin',
-            clients: '/api/clients'
+            clients: '/api/clients',
+            payments: '/api/payments'
         }
     });
 });
@@ -96,6 +98,7 @@ app.use('/api/packages', packageRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ====== Error Handling ======
 
