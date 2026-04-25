@@ -247,4 +247,143 @@ router.put('/profile', async (req, res) => {
     }
 });
 
+// ─── GET /api/clients/activity ────────────────────────────────────────────────────────
+router.get('/activity', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'No token provided' 
+            });
+        }
+
+        // Verify token
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const client = await Client.findById(decoded.id);
+        
+        if (!client) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Client not found' 
+            });
+        }
+
+        // Return mock activity data for now
+        // In production, this would query an Activity collection
+        const activities = [
+            {
+                type: 'payment',
+                title: 'Payment Received',
+                description: 'Monthly payment for fiber service',
+                createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+            },
+            {
+                type: 'installation',
+                title: 'Installation Completed',
+                description: 'Fiber installation at your location',
+                createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            }
+        ];
+
+        return res.json({
+            success: true,
+            activities
+        });
+    } catch (error) {
+        console.error('Activity error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to fetch activity' 
+        });
+    }
+});
+
+// ─── GET /api/clients/requests ────────────────────────────────────────────────────────
+router.get('/requests', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'No token provided' 
+            });
+        }
+
+        // Verify token
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const client = await Client.findById(decoded.id);
+        
+        if (!client) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Client not found' 
+            });
+        }
+
+        // Fetch requests for this client
+        const Request = require('../models/Request');
+        const requests = await Request.find({ email: client.email })
+            .populate('packageId', 'name speed price')
+            .sort({ createdAt: -1 });
+
+        return res.json({
+            success: true,
+            requests
+        });
+    } catch (error) {
+        console.error('Client requests error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to fetch requests' 
+        });
+    }
+});
+
+// ─── GET /api/clients/billing ────────────────────────────────────────────────────────
+router.get('/billing', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'No token provided' 
+            });
+        }
+
+        // Verify token
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const client = await Client.findById(decoded.id).populate('package');
+        
+        if (!client) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Client not found' 
+            });
+        }
+
+        // Return billing information
+        const billing = {
+            currentBill: client.package ? client.package.price : 0,
+            nextBillingDate: client.nextBillingDate || null,
+            paymentHistory: [],
+            outstandingBalance: 0
+        };
+
+        return res.json({
+            success: true,
+            billing
+        });
+    } catch (error) {
+        console.error('Billing error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to fetch billing information' 
+        });
+    }
+});
+
 module.exports = router;
