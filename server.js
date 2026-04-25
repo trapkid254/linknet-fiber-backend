@@ -44,7 +44,8 @@ const allowedOrigins = [
     'http://localhost:5500',
     'https://linknet-fiber.netlify.app',
     'https://trapkid254.github.io',
-    'https://trapkid254.github.io/linknet-fiber-frontend'
+    'https://trapkid254.github.io/linknet-fiber-frontend',
+    'https://linknetkenya.co.ke'
 ].filter(Boolean);
 
 app.use(cors({
