@@ -764,7 +764,14 @@ router.get('/analytics', protect, authorize('admin', 'super_admin'), async (req,
                     acc[item._id] = item.count;
                     return acc;
                 }, {}),
-                recentRequests
+                recentRequests,
+                // Additional fields expected by frontend
+                totalRevenue: 0,
+                monthlyRevenue: 0,
+                totalCustomers: totalRequests,
+                newCustomers: approvedRequests,
+                activePackages: totalPackages,
+                mostPopularPackage: 'N/A'
             }
         });
 
