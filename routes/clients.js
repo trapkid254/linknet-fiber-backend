@@ -369,14 +369,7 @@ router.get('/billing', async (req, res) => {
         const billing = {
             currentBill: client.package ? client.package.price : 0,
             nextBillingDate: client.nextBillingDate || null,
-            paymentHistory: [
-                {
-                    invoiceNumber: 'INV-2024-001',
-                    date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                    amount: client.package ? client.package.price : 0,
-                    status: 'paid'
-                }
-            ],
+            paymentHistory: [],
             outstandingBalance: 0
         };
 
