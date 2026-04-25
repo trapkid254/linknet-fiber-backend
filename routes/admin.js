@@ -712,4 +712,69 @@ router.get('/public/coverage', async (req, res) => {
     }
 });
 
+// ─── GET /api/admin/analytics ────────────────────────────────────────────────────────
+router.get('/analytics', protect, authorize('view_analytics'), async (req, res) => {
+    try {
+        // Get date range from query params (default to last 30 days)
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
+
+        // Fetch analytics data
+        const totalRequests = await Request.countDocuments({
+            createdAt: { $gte: startDate, $lte: endDate }
+        });
+
+        const requestsByStatus = await Request.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const totalPackages = await Package.countDocuments({ isActive: true });
+        const totalCoverage = await Coverage.countDocuments({ status: 'available' });
+
+        // Calculate conversion rate (approved / total requests)
+        const approvedRequests = requestsByStatus.find(r => r._id === 'approved')?.count || 0;
+        const conversionRate = totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(2) : 0;
+
+        // Get recent requests
+        const recentRequests = await Request.find({})
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .populate('packageId', 'name speed price');
+
+        res.json({
+            success: true,
+            data: {
+                overview: {
+                    totalRequests,
+                    totalPackages,
+                    totalCoverage,
+                    conversionRate: parseFloat(conversionRate)
+                },
+                requestsByStatus: requestsByStatus.reduce((acc, item) => {
+                    acc[item._id] = item.count;
+                    return acc;
+                }, {}),
+                recentRequests
+            }
+        });
+
+    } catch (error) {
+        console.error('Analytics error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch analytics data'
+        });
+    }
+});
+
 module.exports = router;
