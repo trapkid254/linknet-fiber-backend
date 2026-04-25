@@ -713,7 +713,7 @@ router.get('/public/coverage', async (req, res) => {
 });
 
 // ─── GET /api/admin/analytics ────────────────────────────────────────────────────────
-router.get('/analytics', protect, authorize('view_analytics'), async (req, res) => {
+router.get('/analytics', protect, authorize('admin', 'super_admin'), async (req, res) => {
     try {
         // Get date range from query params (default to last 30 days)
         const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
