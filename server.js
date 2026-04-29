@@ -14,6 +14,8 @@ const requestRoutes = require('./routes/requests');
 const adminRoutes = require('./routes/admin');
 const clientRoutes = require('./routes/clients');
 const paymentRoutes = require('./routes/payments');
+const productRoutes = require('./routes/products');
+const orderRoutes = require('./routes/orders');
 
 // Initialize Express app
 const app = express();
@@ -100,6 +102,8 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 // ====== Error Handling ======
 
