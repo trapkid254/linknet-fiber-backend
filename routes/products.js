@@ -38,7 +38,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─── POST /api/products - Create product (admin only) ───────────────────────────
-router.post('/', protect, authorize('admin'), async (req, res) => {
+router.post('/', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const product = await Product.create(req.body);
         res.status(201).json({ success: true, product });
@@ -49,7 +49,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 });
 
 // ─── PUT /api/products/:id - Update product (admin only) ───────────────────────
-router.put('/:id', protect, authorize('admin'), async (req, res) => {
+router.put('/:id', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const product = await Product.findByIdAndUpdate(
             req.params.id,
@@ -69,7 +69,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
 });
 
 // ─── DELETE /api/products/:id - Delete product (admin only) ────────────────────
-router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+router.delete('/:id', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         

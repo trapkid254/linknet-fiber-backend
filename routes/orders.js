@@ -5,7 +5,7 @@ const Order = require('../models/Order');
 const { protect, authorize } = require('../middleware/auth');
 
 // ─── GET /api/orders - Get all orders (admin only) ───────────────────────────
-router.get('/', protect, authorize('admin'), async (req, res) => {
+router.get('/', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const { status, paymentStatus } = req.query;
         const filter = {};
@@ -22,7 +22,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
 });
 
 // ─── GET /api/orders/:id - Get single order (admin only) ───────────────────────
-router.get('/:id', protect, authorize('admin'), async (req, res) => {
+router.get('/:id', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         
@@ -66,7 +66,7 @@ router.post('/', async (req, res) => {
 });
 
 // ─── PUT /api/orders/:id/status - Update order status (admin only) ─────────────
-router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
+router.put('/:id/status', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const { status } = req.body;
         
@@ -88,7 +88,7 @@ router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
 });
 
 // ─── PUT /api/orders/:id/payment-status - Update payment status (admin only) ────
-router.put('/:id/payment-status', protect, authorize('admin'), async (req, res) => {
+router.put('/:id/payment-status', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
     try {
         const { paymentStatus } = req.body;
         
