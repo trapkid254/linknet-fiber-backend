@@ -23,12 +23,17 @@ const productSchema = new mongoose.Schema({
     },
     stock: {
         type: Number,
-        default: 0,
-        min: 0
+        required: [true, 'Stock quantity is required'],
+        min: 0,
+        default: 0
     },
     icon: {
         type: String,
         default: 'fas fa-box'
+    },
+    image: {
+        type: String,
+        default: null
     },
     features: [{
         type: String
@@ -37,6 +42,14 @@ const productSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true

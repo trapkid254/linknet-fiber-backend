@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const { protect, authorize } = require('../middleware/auth');
+const upload = require('../middleware/upload').single('image');
 
 // ─── GET /api/products - Get all products (public) ─────────────────────────
 router.get('/', async (req, res) => {
@@ -38,34 +39,62 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─── POST /api/products - Create product (admin only) ───────────────────────────
-router.post('/', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
-    try {
-        const product = await Product.create(req.body);
-        res.status(201).json({ success: true, product });
-    } catch (error) {
-        console.error('Error creating product:', error);
-        res.status(500).json({ success: false, error: 'Error creating product' });
-    }
+router.post('/', protect, authorize('admin', 'super_admin', 'support', 'sales'), (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) {
+            console.error('Upload error:', err);
+            return res.status(400).json({ success: false, error: err.message });
+        }
+        
+        try {
+            const productData = req.body;
+            
+            // Add image path if file was uploaded
+            if (req.file) {
+                productData.image = `/uploads/${req.file.filename}`;
+            }
+            
+            const product = await Product.create(productData);
+            res.status(201).json({ success: true, product });
+        } catch (error) {
+            console.error('Error creating product:', error);
+            res.status(500).json({ success: false, error: 'Error creating product' });
+        }
+    });
 });
 
 // ─── PUT /api/products/:id - Update product (admin only) ───────────────────────
-router.put('/:id', protect, authorize('admin', 'super_admin', 'support', 'sales'), async (req, res) => {
-    try {
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
-        
-        if (!product) {
-            return res.status(404).json({ success: false, error: 'Product not found' });
+router.put('/:id', protect, authorize('admin', 'super_admin', 'support', 'sales'), (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) {
+            console.error('Upload error:', err);
+            return res.status(400).json({ success: false, error: err.message });
         }
         
-        res.json({ success: true, product });
-    } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).json({ success: false, error: 'Error updating product' });
-    }
+        try {
+            const productData = req.body;
+            
+            // Add image path if file was uploaded
+            if (req.file) {
+                productData.image = `/uploads/${req.file.filename}`;
+            }
+            
+            const product = await Product.findByIdAndUpdate(
+                req.params.id,
+                productData,
+                { new: true, runValidators: true }
+            );
+            
+            if (!product) {
+                return res.status(404).json({ success: false, error: 'Product not found' });
+            }
+            
+            res.json({ success: true, product });
+        } catch (error) {
+            console.error('Error updating product:', error);
+            res.status(500).json({ success: false, error: 'Error updating product' });
+        }
+    });
 });
 
 // ─── DELETE /api/products/:id - Delete product (admin only) ────────────────────
