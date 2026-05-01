@@ -27,7 +27,7 @@ const orderSchema = new mongoose.Schema({
     },
     deliveryFee: {
         type: Number,
-        default: 500
+        default: 0
     },
     paymentMethod: {
         type: String,
