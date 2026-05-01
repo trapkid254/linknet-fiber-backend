@@ -40,6 +40,7 @@ router.get('/:id', async (req, res) => {
 
 // ─── POST /api/products - Create product (admin only) ───────────────────────────
 router.post('/', protect, authorize('admin', 'super_admin', 'support', 'sales'), (req, res) => {
+    console.log('POST /api/products - User:', req.admin ? req.admin.email : 'No admin', 'Role:', req.admin ? req.admin.role : 'N/A');
     upload(req, res, async (err) => {
         if (err) {
             console.error('Upload error:', err);
@@ -48,6 +49,7 @@ router.post('/', protect, authorize('admin', 'super_admin', 'support', 'sales'),
         
         try {
             const productData = req.body;
+            console.log('Product data:', productData);
             
             // Add image path if file was uploaded
             if (req.file) {
@@ -55,6 +57,7 @@ router.post('/', protect, authorize('admin', 'super_admin', 'support', 'sales'),
             }
             
             const product = await Product.create(productData);
+            console.log('Product created successfully:', product._id);
             res.status(201).json({ success: true, product });
         } catch (error) {
             console.error('Error creating product:', error);
