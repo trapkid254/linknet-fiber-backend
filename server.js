@@ -34,6 +34,7 @@ app.use(helmet({
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
         },
     },
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // ====== CORS Configuration ======
@@ -70,13 +71,15 @@ app.use(morgan('combined'));
 // ─── Static Files ───────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Uploads directory with CORS headers
-app.use('/uploads', (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-}, express.static(path.join(__dirname, 'uploads')));
+// Uploads directory with CORS - use cors middleware
+const uploadsCors = cors({
+    origin: true,
+    methods: ['GET', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
+});
+
+app.use('/uploads', uploadsCors, express.static(path.join(__dirname, 'uploads')));
 
 // ====== Routes ======
 app.get('/', (req, res) => {
