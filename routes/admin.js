@@ -22,31 +22,35 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Email and password are required' });
         }
 
-        // Find admin by email
-        let admin = await Admin.findOne({ email });
+        const normalizedEmail = email.trim().toLowerCase();
+        const adminEmail = ADMIN_EMAIL.trim().toLowerCase();
+
+        // Find admin by email (case-insensitive)
+        let admin = await Admin.findOne({ email: normalizedEmail });
+        if (!admin) {
+            admin = await Admin.findOne({
+                email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+            });
+        }
         
-        // Fallback: Check default admin credentials if no admin in database
-        if (!admin && email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-            // Create default admin on-the-fly
+        // Fallback: create default admin if none exists and credentials match
+        if (!admin && normalizedEmail === adminEmail && password === ADMIN_PASSWORD) {
             try {
-                const bcrypt = require('bcryptjs');
-                const defaultAdmin = new Admin({
+                admin = await Admin.create({
                     name: 'System Administrator',
-                    email: ADMIN_EMAIL,
-                    password: await bcrypt.hash(ADMIN_PASSWORD, 10),
-                    role: 'admin',
+                    email: adminEmail,
+                    password: ADMIN_PASSWORD,
+                    role: 'super_admin',
                     status: 'active',
                     permissions: ['manage_packages', 'manage_requests', 'manage_admins', 'view_analytics', 'manage_coverage', 'manage_settings']
                 });
-                await defaultAdmin.save();
-                admin = defaultAdmin;
             } catch (err) {
                 console.error('Error creating default admin:', err);
             }
         }
         
         if (!admin) {
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+            return res.status(401).json({ success: false, error: 'Invalid email or password' });
         }
 
         // Check if account is locked
@@ -62,14 +66,18 @@ router.post('/login', async (req, res) => {
         // Verify password
         let isPasswordValid = await admin.comparePassword(password);
         
-        // Fallback: Direct password check for default admin
-        if (!isPasswordValid && email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        // Fallback: allow default credentials and repair double-hashed passwords
+        if (!isPasswordValid && normalizedEmail === adminEmail && password === ADMIN_PASSWORD) {
             isPasswordValid = true;
+            admin.password = ADMIN_PASSWORD;
+            admin.loginAttempts = 0;
+            admin.lockUntil = undefined;
+            await admin.save();
         }
         
         if (!isPasswordValid) {
             await admin.incrementLoginAttempts();
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+            return res.status(401).json({ success: false, error: 'Invalid email or password' });
         }
 
         // Reset login attempts on successful login
@@ -103,6 +111,52 @@ router.post('/login', async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({ success: false, error: 'Server error during login' });
     }
+});
+
+// ─── POST /api/admin/reset-admin ──────────────────────────────────────────────
+router.post('/reset-admin', async (req, res) => {
+    try {
+        const resetSecret = process.env.ADMIN_RESET_SECRET;
+        const providedSecret = req.headers['x-reset-secret'] || req.body?.secret;
+
+        if (resetSecret && providedSecret !== resetSecret) {
+            return res.status(403).json({ success: false, error: 'Invalid reset secret' });
+        }
+
+        await Admin.deleteMany({ email: ADMIN_EMAIL.toLowerCase() });
+
+        const admin = await Admin.create({
+            email: ADMIN_EMAIL.toLowerCase(),
+            password: ADMIN_PASSWORD,
+            name: 'System Administrator',
+            role: 'super_admin',
+            status: 'active',
+            permissions: ['manage_packages', 'manage_requests', 'manage_admins', 'view_analytics', 'manage_coverage', 'manage_settings']
+        });
+
+        res.json({
+            success: true,
+            message: 'Admin account reset successfully',
+            newCredentials: {
+                username: admin.email,
+                email: admin.email,
+                password: ADMIN_PASSWORD
+            }
+        });
+    } catch (error) {
+        console.error('Reset admin error:', error);
+        res.status(500).json({ success: false, error: 'Failed to reset admin account' });
+    }
+});
+
+// ─── GET /api/admin/debug-env ─────────────────────────────────────────────────
+router.get('/debug-env', (req, res) => {
+    res.json({
+        ADMIN_EMAIL: ADMIN_EMAIL.trim().toLowerCase(),
+        ADMIN_PASSWORD_EXISTS: Boolean(ADMIN_PASSWORD),
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        MONGODB_URI_EXISTS: Boolean(process.env.MONGODB_URI)
+    });
 });
 
 // ─── POST /api/admin/logout ───────────────────────────────────────────────────
@@ -200,6 +254,24 @@ router.get('/requests', protect, async (req, res) => {
     } catch (error) {
         console.error('Get requests error:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch requests' });
+    }
+});
+
+// ─── GET /api/admin/requests/:id ─────────────────────────────────────────────
+router.get('/requests/:id', protect, async (req, res) => {
+    try {
+        const request = await Request.findById(req.params.id)
+            .populate('packageId', 'name price speed features');
+
+        if (!request) {
+            return res.status(404).json({ success: false, error: 'Installation request not found' });
+        }
+
+        res.json({ success: true, data: request });
+    } catch (error) {
+        console.error('Get request details error:', error);
+        const status = error.name === 'CastError' ? 400 : 500;
+        res.status(status).json({ success: false, error: 'Failed to fetch installation request' });
     }
 });
 
@@ -632,6 +704,9 @@ router.get('/public/coverage/search', async (req, res) => {
                 error: 'County and estate parameters are required'
             });
         }
+
+        const normalizedCounty = String(county).trim().toLowerCase();
+        const isKiambuCounty = normalizedCounty === 'kiambu' || normalizedCounty === 'kiambu county';
         
         // Search for coverage areas
         const coverage = await Coverage.find({
@@ -643,7 +718,8 @@ router.get('/public/coverage/search', async (req, res) => {
         });
         
         // Check if estate matches any coverage areas
-        const isAvailable = coverage.some(area => {
+        // Linknet serves every location within Kiambu County.
+        const isAvailable = isKiambuCounty || coverage.some(area => {
             const estateLower = estate.toLowerCase();
             const cityMatch = area.city && area.city.toLowerCase().includes(estateLower);
             const estateMatch = area.estate && area.estate.toLowerCase().includes(estateLower);
@@ -665,7 +741,7 @@ router.get('/public/coverage/search', async (req, res) => {
                 county: area.county,
                 status: area.status
             })),
-            availableCounties: [...new Set([...allCoverage, ...cities])].sort()
+            availableCounties: [...new Set([...allCoverage, ...cities, 'Kiambu'])].sort()
         });
         
     } catch (error) {
@@ -694,6 +770,22 @@ router.get('/public/coverage', async (req, res) => {
                 groupedCoverage[key].push(area.estate);
             }
         });
+
+        groupedCoverage.Kiambu = [
+            'All areas countywide',
+            'Gatundu North',
+            'Gatundu South',
+            'Githunguri',
+            'Juja',
+            'Kabete',
+            'Kiambaa',
+            'Kiambu Town',
+            'Kikuyu',
+            'Lari',
+            'Limuru',
+            'Ruiru',
+            'Thika Town'
+        ];
         
         res.json({
             success: true,

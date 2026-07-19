@@ -161,12 +161,48 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/linknet_fiber';
 
+const Admin = require('./models/Admin');
+
+async function ensureDefaultAdmin() {
+    const adminEmail = (process.env.ADMIN_EMAIL || 'administrator@linknetfiber.com').trim().toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Linknet@2024';
+
+    try {
+        let admin = await Admin.findOne({ email: adminEmail });
+        if (!admin) {
+            await Admin.create({
+                email: adminEmail,
+                password: adminPassword,
+                name: 'System Administrator',
+                role: 'super_admin',
+                status: 'active'
+            });
+            console.log(`✅ Default admin created: ${adminEmail}`);
+            return;
+        }
+
+        const passwordValid = await admin.comparePassword(adminPassword);
+        if (!passwordValid) {
+            admin.password = adminPassword;
+            admin.status = 'active';
+            admin.loginAttempts = 0;
+            admin.lockUntil = undefined;
+            await admin.save();
+            console.log(`✅ Default admin password repaired: ${adminEmail}`);
+        }
+    } catch (error) {
+        console.error('⚠️ Could not ensure default admin:', error.message);
+    }
+}
+
 async function startServer() {
     try {
         await mongoose.connect(MONGODB_URI, {
             serverSelectionTimeoutMS: 10000,
         });
         console.log(`✅ MongoDB connected: ${MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')}`);
+
+        await ensureDefaultAdmin();
 
         const server = app.listen(PORT, () => {
             console.log(`

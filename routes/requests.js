@@ -295,19 +295,34 @@ router.get('/coverage/check', (req, res) => {
         kisumu: ['Milimani', 'Kibuye', 'Mamboleo', 'Kanyakwar', 'Nyalenda'],
         nakuru: ['Milimani', 'Section 58', 'Lanet', 'Njoro', 'London'],
         kericho: ['Kapsoya', 'Kipkelion', 'Ainamoi', 'Soin', 'Belgut'],
-        kiambu: ['Juja', 'Kenyatta road', 'Juja Farm', 'Ruiru', 'Thika', 'Githurai'],
+        kiambu: [
+            'All areas countywide',
+            'Gatundu North',
+            'Gatundu South',
+            'Githunguri',
+            'Juja',
+            'Kabete',
+            'Kiambaa',
+            'Kiambu Town',
+            'Kikuyu',
+            'Lari',
+            'Limuru',
+            'Ruiru',
+            'Thika Town'
+        ],
     };
     
-    const countyLower = county.toLowerCase();
+    const countyLower = county.toLowerCase().trim();
+    const coverageCounty = countyLower === 'kiambu county' ? 'kiambu' : countyLower;
     const estateLower = estate.toLowerCase();
     
     let available = false;
     let areas = [];
     
-    if (coverageData[countyLower]) {
-        areas = coverageData[countyLower];
-        available = areas.some(area => 
-            area.toLowerCase().includes(estateLower) || 
+    if (coverageData[coverageCounty]) {
+        areas = coverageData[coverageCounty];
+        available = coverageCounty === 'kiambu' || areas.some(area =>
+            area.toLowerCase().includes(estateLower) ||
             estateLower.includes(area.toLowerCase())
         );
     }

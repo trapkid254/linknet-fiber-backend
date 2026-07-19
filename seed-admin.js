@@ -1,12 +1,10 @@
 // seed-admin.js - Script to create default admin account
 require('dotenv').config();
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const Admin = require('./models/Admin');
 
 async function seedAdmin() {
     try {
-        // Connect to MongoDB
         await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
@@ -14,29 +12,32 @@ async function seedAdmin() {
 
         console.log('Connected to MongoDB');
 
-        // Check if admin already exists
-        const existingAdmin = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
+        const adminEmail = (process.env.ADMIN_EMAIL || 'administrator@linknetfiber.com').trim().toLowerCase();
+        const adminPassword = process.env.ADMIN_PASSWORD || 'Linknet@2024';
+
+        const existingAdmin = await Admin.findOne({ email: adminEmail });
 
         if (existingAdmin) {
-            console.log('Admin already exists:', existingAdmin.email);
+            existingAdmin.password = adminPassword;
+            existingAdmin.status = 'active';
+            existingAdmin.loginAttempts = 0;
+            existingAdmin.lockUntil = null;
+            await existingAdmin.save();
+            console.log('Admin password reset for:', existingAdmin.email);
             return;
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
-
-        // Create admin
         const admin = await Admin.create({
-            email: process.env.ADMIN_EMAIL,
-            password: hashedPassword,
+            email: adminEmail,
+            password: adminPassword,
             name: 'System Administrator',
             role: 'super_admin',
             status: 'active'
         });
 
-        console.log('✅ Admin account created successfully!');
+        console.log('Admin account created successfully!');
         console.log(`Email: ${admin.email}`);
-        console.log(`Password: ${process.env.ADMIN_PASSWORD}`);
+        console.log(`Password: ${adminPassword}`);
         console.log(`Role: ${admin.role}`);
 
     } catch (error) {
@@ -47,5 +48,4 @@ async function seedAdmin() {
     }
 }
 
-// Run the seeding function
 seedAdmin();
